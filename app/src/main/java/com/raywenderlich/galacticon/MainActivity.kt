@@ -25,6 +25,7 @@ package com.raywenderlich.galacticon
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
+import android.support.v7.widget.RecyclerView
 import android.view.Menu
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.IOException
@@ -32,47 +33,62 @@ import java.util.*
 
 class MainActivity : AppCompatActivity(), ImageRequester.ImageRequesterResponse {
 
-  private var photosList: ArrayList<Photo> = ArrayList()
-  private lateinit var imageRequester: ImageRequester
-  private lateinit var linearLayoutManager: LinearLayoutManager
-  private lateinit var adapter: RecyclerAdapter
+    private var photosList: ArrayList<Photo> = ArrayList()
+    private lateinit var imageRequester: ImageRequester
+    private lateinit var linearLayoutManager: LinearLayoutManager
+    private lateinit var adapter: RecyclerAdapter
 
-  override fun onCreateOptionsMenu(menu: Menu): Boolean {
-    menuInflater.inflate(R.menu.menu_main, menu)
-    return true
-  }
+    private val lastVisibleItemPosition: Int
+        get() = linearLayoutManager.findLastVisibleItemPosition()
 
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    setContentView(R.layout.activity_main)
-
-    imageRequester = ImageRequester(this)
-
-    linearLayoutManager = LinearLayoutManager(this)
-    recyclerView.layoutManager = linearLayoutManager
-    adapter = RecyclerAdapter(photosList)
-    recyclerView.adapter = adapter
-  }
-
-  override fun onStart() {
-    super.onStart()
-    if(photosList.size == 0)
-      requestPhoto()
-  }
-
-  private fun requestPhoto() {
-    try {
-      imageRequester.getPhoto()
-    } catch (e: IOException) {
-      e.printStackTrace()
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
     }
 
-  }
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
 
-  override fun receivedNewPhoto(newPhoto: Photo) {
-    runOnUiThread {
-      photosList.add(newPhoto)
-      adapter.notifyItemInserted(photosList.size - 1)
+        imageRequester = ImageRequester(this)
+
+        linearLayoutManager = LinearLayoutManager(this)
+        recyclerView.layoutManager = linearLayoutManager
+        adapter = RecyclerAdapter(photosList)
+        recyclerView.adapter = adapter
+        setRecyclerViewScrollListener()
     }
-  }
+
+    override fun onStart() {
+        super.onStart()
+        if (photosList.size == 0)
+            requestPhoto()
+    }
+
+    private fun requestPhoto() {
+        try {
+            imageRequester.getPhoto()
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun setRecyclerViewScrollListener() {
+        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
+                val totalItemCount = recyclerView.layoutManager!!.itemCount
+                if (!imageRequester.isLoadingData && totalItemCount == lastVisibleItemPosition + 1) {
+                    requestPhoto()
+                }
+            }
+        })
+    }
+
+    override fun receivedNewPhoto(newPhoto: Photo) {
+        runOnUiThread {
+            photosList.add(newPhoto)
+            adapter.notifyItemInserted(photosList.size - 1)
+        }
+    }
 }
