@@ -24,9 +24,11 @@ package com.raywenderlich.galacticon
 
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.Menu
+import android.view.MenuItem
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.IOException
 import java.util.*
@@ -36,10 +38,15 @@ class MainActivity : AppCompatActivity(), ImageRequester.ImageRequesterResponse 
     private var photosList: ArrayList<Photo> = ArrayList()
     private lateinit var imageRequester: ImageRequester
     private lateinit var linearLayoutManager: LinearLayoutManager
+    private lateinit var gridLayoutManager: GridLayoutManager
     private lateinit var adapter: RecyclerAdapter
 
     private val lastVisibleItemPosition: Int
-        get() = linearLayoutManager.findLastVisibleItemPosition()
+        get() = if (recyclerView.layoutManager == linearLayoutManager) {
+            linearLayoutManager.findLastVisibleItemPosition()
+        } else {
+            gridLayoutManager.findLastVisibleItemPosition()
+        }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
@@ -53,6 +60,7 @@ class MainActivity : AppCompatActivity(), ImageRequester.ImageRequesterResponse 
         imageRequester = ImageRequester(this)
 
         linearLayoutManager = LinearLayoutManager(this)
+        gridLayoutManager = GridLayoutManager(this, 2)
         recyclerView.layoutManager = linearLayoutManager
         adapter = RecyclerAdapter(photosList)
         recyclerView.adapter = adapter
@@ -65,12 +73,30 @@ class MainActivity : AppCompatActivity(), ImageRequester.ImageRequesterResponse 
             requestPhoto()
     }
 
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if(item.itemId == R.id.action_change_recycler_manager) {
+            changeLayoutManager()
+            return true
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
     private fun requestPhoto() {
         try {
             imageRequester.getPhoto()
         } catch (e: IOException) {
             e.printStackTrace()
         }
+    }
+
+    private fun changeLayoutManager() {
+        if (recyclerView.layoutManager == linearLayoutManager) {
+            recyclerView.layoutManager = gridLayoutManager
+            if (photosList.size == 1) {
+                requestPhoto()
+            }
+        } else
+            recyclerView.layoutManager = linearLayoutManager
     }
 
     private fun setRecyclerViewScrollListener() {
