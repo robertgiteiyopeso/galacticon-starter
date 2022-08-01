@@ -27,6 +27,7 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.support.v7.widget.helper.ItemTouchHelper
 import android.view.Menu
 import android.view.MenuItem
 import kotlinx.android.synthetic.main.activity_main.*
@@ -65,6 +66,7 @@ class MainActivity : AppCompatActivity(), ImageRequester.ImageRequesterResponse 
         adapter = RecyclerAdapter(photosList)
         recyclerView.adapter = adapter
         setRecyclerViewScrollListener()
+        setRecyclerViewItemTouchListener()
     }
 
     override fun onStart() {
@@ -74,7 +76,7 @@ class MainActivity : AppCompatActivity(), ImageRequester.ImageRequesterResponse 
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if(item.itemId == R.id.action_change_recycler_manager) {
+        if (item.itemId == R.id.action_change_recycler_manager) {
             changeLayoutManager()
             return true
         }
@@ -109,6 +111,28 @@ class MainActivity : AppCompatActivity(), ImageRequester.ImageRequesterResponse 
                 }
             }
         })
+    }
+
+    private fun setRecyclerViewItemTouchListener() {
+        val itemTouchCallback = object :
+            ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                viewHolder1: RecyclerView.ViewHolder
+            ): Boolean {
+                return false
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, swipeDir: Int) {
+                val position = viewHolder.adapterPosition
+                photosList.removeAt(position)
+                recyclerView.adapter!!.notifyItemRemoved(position)
+            }
+        }
+
+        val itemTouchHelper = ItemTouchHelper(itemTouchCallback)
+        itemTouchHelper.attachToRecyclerView(recyclerView)
     }
 
     override fun receivedNewPhoto(newPhoto: Photo) {
